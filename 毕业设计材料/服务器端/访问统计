@@ -1,0 +1,58 @@
+schema/movie.js
+
+var mongoose = require("mongoose");
+//建造schema
+var Movieschema = new mongoose.Schema({
+	doctor: String,
+	title: String,
+	language: String,
+	country: String,
+	summary: String,
+	flash: String,
+	poster: String,
+	year: Number,
+	pv:{
+                    type: Number,
+                    default: 0
+	},
+	meta: {
+		createAt:{
+			type: Date,
+			default: Date.now()
+		},
+		updateAt:{
+			type: Date,
+			default: Date.now()
+		}
+	}
+});
+
+Movieschema.pre('save', function(next){
+	if(this.isNew){
+		this.meta.createAt = this.meta.updateAt = Date.now()
+	}
+      else {
+        this.meta.updateAt = Date.now();
+      }
+      next();
+});
+
+module.exports = Movieschema;
+
+app.js
+//详情页
+app.get("/movie/:id", function(req, res){    
+    Movie.update({_id: id}, {$inc: {pv: 1}}, function(err){
+      if(err){
+        console.log(err);
+      }
+    });
+}
+
+list.jade
+     th 访问量
+     td #{item.pv}
+
+detail.jade
+    dt 访问量
+    dd= movie.pv

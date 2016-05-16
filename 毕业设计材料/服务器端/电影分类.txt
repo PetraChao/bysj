@@ -1,0 +1,19 @@
+与电影数据处理一样，增加category的schemas、model，还有相应的增删改查功能。给电影分类作了一个数据表，关联到原来电影表里面，由于分类的增删改查与电影的增删改查类似，不再赘述，现在着重讲如何在电影后台录入页增加分类，让用户可以选择这些分类，提交category的id值等
+
+在admin.jade中增加填写分类的表单项
+        .form-group
+          label.col-sm-2.control-label(for="inputCategory") 电影类型
+          .col-sm-10
+            input#inputCategory.form-control(type="text",name="movie[category]",value="#{movie.categoryName}", required="required")
+        each cat in categories
+          label.radio-inline
+            input(type="redio", name="movie[category]", value="#{cat._id}")
+            | #{cat.name}
+
+在创建新电影时加入分类字段，也就是需要在app.js的app.post("/admin/movie/new")路由中,添加一下代码
+
+// 创建或修改一部新电影
+app.post("/admin/movie/new", function(req, res){
+  var id = req.body.movie._id;
+  var movieObj = req.body.movie;
+  var _movie;

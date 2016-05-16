@@ -1,0 +1,117 @@
+1.在schema/comment.js中创建评论的数据库模型骨架
+//引入mongoose
+var mongoose = require("mongoose");
+var Schema = mongoose.Schema;
+var ObjectId = Schema.Types.ObjectId;
+//建造schema
+var CommentSchema = new Schema({
+	//建立关联数据的索引
+	movie:{type:ObjectId, ref:"Movie"},
+	from: {type:ObjectId, ref:"User"},
+	to: {type:ObjectId, ref:"User"},
+	content: String,
+	meta: {
+		createAt:{
+			type: Date,
+			default: Date.now()
+		},
+		updateAt:{
+			type: Date,
+			default: Date.now()
+		}
+	}
+});
+
+CommentSchema.pre('save', function(next){
+	if(this.isNew){
+		this.meta.createAt = this.meta.updateAt = Date.now()
+	}
+      else {
+        this.meta.updateAt = Date.now();
+      }
+      next();
+});
+
+CommentSchema.statics = {
+  fetch: function (cb){
+    return this
+      .find({})
+      .exec(cb);
+  },
+  findById: function (id, cb){
+    return this
+      .findOne({_id: id})
+      .exec(cb);
+  }
+}
+
+module.exports = CommentSchema;
+
+2.在model/comment.js中将创建好的评论的schema发布生成model
+var mongoose = require("mongoose");
+var CommentSchema = require("../schemas/comment");
+var Comment = mongoose.model("Comment", CommentSchema);
+
+module.exports = Comment;
+
+3.在app.js中引用Comment
+var Comment = require("./models/comment");
+
+在detail.jade中给数据赋值，并提交到处理页面
+form#commentForm(method="POST", action="/user/comment")
+            param(name=" wmode"  value=" transparent")
+            input(type="hidden", name="comment[movie]", value="#{movie._id}")
+            if user
+              input(type="hidden", name="comment[from]", value="#{user._id}")
+              .form-group
+                textarea.form-control(name="comment[content]", row="3")
+                button.btn.btn-primary(type="submit") 提交
+
+在app.js中处理评论逻辑
+//提交评论
+app.post('/user/comment', function(req,res){
+  var _comment = req.body.comment;
+
+  console.log("_comment:", _comment);
+
+  var movieId = _comment.movie;
+
+  var comment = new Comment(_comment);
+
+      console.log("comment:", comment);
+   comment.save(function(err, comment){
+      if(err){
+        console.log("comment error 评论去", err);
+      }
+      res.redirect("/movie/"+ movieId);
+    });
+});
+
+在进入详情页面时读取comment数据，展示出来
+
+//详情页
+app.get("/movie/:id", function(req, res){
+  var id = req.params.id;
+  Movie.findById(id, function(err, movie){
+    if(err){
+      console.log(err);
+    }
+    //通过populate方法查询关联表，其中用comment的from字段作为id查询，返回关联user表name属性值
+    Comment
+    .find({movie: id})
+    .populate("from", "name")
+    .exec(function(err, comments){
+        if(err){
+          console.log(err);
+        }
+        res.render("detail",{
+            title:movie.title,
+            layout:false,
+            movie: movie,
+            comments: comments
+        });
+    });
+  });
+});
+
+
